@@ -1,0 +1,77 @@
+kafka:
+  # Use KRaft mode (no Zookeeper)
+  kraft:
+    enabled: true
+
+  # Replicas for production
+  controller:
+    replicaCount: 3
+
+  broker:
+    replicaCount: 3
+
+  # Resource limits for production
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+
+  # Listeners
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    controller:
+      protocol: PLAINTEXT
+    interbroker:
+      protocol: PLAINTEXT
+
+  # Persistence
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: "fast-ssd"
+
+  # Auto-create topics disabled in production
+  autoCreateTopicsEnable: false
+
+  # Log retention
+  logRetentionHours: 168
+  logRetentionBytes: 10737418240
+
+  # Default replication factors
+  defaultReplicationFactor: 3
+  offsetsTopicReplicationFactor: 3
+  transactionStateLogReplicationFactor: 3
+  transactionStateLogMinIsr: 2
+
+  # Number of partitions for auto-created topics
+  numPartitions: 3
+
+  # Pre-create required topics
+  provisioning:
+    enabled: true
+    topics:
+      - name: events
+        partitions: 3
+        replicationFactor: 3
+        config:
+          retention.ms: "604800000"
+          segment.bytes: "1073741824"
+          min.insync.replicas: "2"
+      - name: alerts
+        partitions: 1
+        replicationFactor: 3
+        config:
+          retention.ms: "604800000"
+          segment.bytes: "1073741824"
+          min.insync.replicas: "2"
+
+  # Production metrics and monitoring
+  metrics:
+    kafka:
+      enabled: true
+    jmx:
+      enabled: true

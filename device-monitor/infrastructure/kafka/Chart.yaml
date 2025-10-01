@@ -1,0 +1,11 @@
+apiVersion: v2
+name: kafka
+description: Kafka cluster for IoT device monitoring
+type: application
+version: 1.0.0
+appVersion: "3.6.0"
+
+dependencies:
+  - name: kafka
+    version: 26.4.3
+    repository: https://charts.bitnami.com/bitnami

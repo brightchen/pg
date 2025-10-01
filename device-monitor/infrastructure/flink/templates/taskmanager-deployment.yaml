@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-taskmanager
+  labels:
+    app: flink
+    component: taskmanager
+spec:
+  replicas: {{ .Values.taskmanager.replicas }}
+  selector:
+    matchLabels:
+      app: flink
+      component: taskmanager
+  template:
+    metadata:
+      labels:
+        app: flink
+        component: taskmanager
+    spec:
+      serviceAccountName: {{ .Release.Name }}-flink
+      containers:
+      - name: taskmanager
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - taskmanager
+        ports:
+        - containerPort: 6122
+          name: rpc
+        - containerPort: 6125
+          name: query-state
+        livenessProbe:
+          tcpSocket:
+            port: 6122
+          initialDelaySeconds: 30
+          periodSeconds: 60
+        readinessProbe:
+          tcpSocket:
+            port: 6122
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        volumeMounts:
+        - name: flink-config-volume
+          mountPath: /opt/flink/conf
+        - name: job-artifacts-volume
+          mountPath: /opt/flink/usrlib
+        resources:
+          requests:
+            cpu: {{ .Values.taskmanager.resources.requests.cpu }}
+            memory: {{ .Values.taskmanager.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.taskmanager.resources.limits.cpu }}
+            memory: {{ .Values.taskmanager.resources.limits.memory }}
+      volumes:
+      - name: flink-config-volume
+        configMap:
+          name: {{ .Release.Name }}-flink-config
+          items:
+          - key: flink-conf.yaml
+            path: flink-conf.yaml
+          - key: log4j-console.properties
+            path: log4j-console.properties
+      - name: job-artifacts-volume
+        emptyDir: {}

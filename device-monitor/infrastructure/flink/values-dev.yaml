@@ -1,0 +1,44 @@
+environment: dev
+
+image:
+  repository: flink
+  tag: 1.18.1-java21
+  pullPolicy: IfNotPresent
+
+jobmanager:
+  memory: 2048m
+  service:
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+taskmanager:
+  replicas: 2
+  memory: 2048m
+  taskSlots: 4
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+parallelism: 2
+
+checkpoint:
+  dir: file:///opt/flink/checkpoints
+
+kafka:
+  bootstrapServers: kafka-0.kafka-headless:9092
+  eventsTopic: events
+  alertsTopic: alerts
+
+monitor:
+  jar: /opt/flink/usrlib/monitor-1.0.0.jar
+  mainClass: bc.monitor.Monitor
