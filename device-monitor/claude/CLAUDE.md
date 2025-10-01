@@ -178,3 +178,27 @@ make deploy-all-prod   # Deploy everything to prod
 - Simulates multiple IoT devices sending events at configurable intervals
 - Can simulate device failures (stops sending events) and recovery
 - Command-line arguments: `--kafka.bootstrap.servers`, `--topic`, `--num.devices`, `--event.interval.ms`, `--duration.seconds`, `--failure.probability`
+
+## Integration Tests
+
+The integration tests (monitor/src/integration-test/java/) use a smart Kafka management approach via `KafkaTestHelper`:
+
+1. Check if Kafka is running at configured bootstrap servers (default: `localhost:9094`)
+2. If not running, automatically start Kafka using docker-compose
+3. Verify test topics exist (`events-test`, `alerts-test`), create if missing
+4. Clean up messages in test topics before each test (using Kafka Admin API to delete records)
+5. Keep Kafka running after tests complete (no teardown)
+
+**Configuration:**
+- Set via system property: `-Dkafka.bootstrap.servers=your-kafka:9092`
+- Or environment variable: `KAFKA_BOOTSTRAP_SERVERS=your-kafka:9092`
+- Default: `localhost:9094`
+
+**Running tests:**
+```bash
+make integration-test
+# Or with custom Kafka:
+./scripts/integration-test.sh your-kafka:9092
+```
+
+This approach provides faster test execution on subsequent runs since Kafka doesn't need to restart.

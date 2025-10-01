@@ -1,5 +1,6 @@
 package bc.monitor;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -31,20 +32,24 @@ public class DeviceEvent implements Event {
     }
 
     @Override
+    @JsonIgnore
     public long getTimestamp() {
         return timestamp;
     }
 
     @Override
+    @JsonIgnore
     public String getEventId() {
         return eventId;
     }
 
     @Override
+    @JsonIgnore
     public String getEventGroup() {
         return deviceId;
     }
 
+    @JsonIgnore
     public String getDeviceId() {
         return deviceId;
     }
