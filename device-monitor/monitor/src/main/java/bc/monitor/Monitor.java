@@ -15,7 +15,7 @@ import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsIni
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
-import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
+import org.apache.flink.streaming.api.functions.windowing.ProcessAllWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
@@ -213,9 +213,9 @@ public class Monitor {
     /**
      * Aggregates alerts within a window (for batching alerts every 30 seconds).
      */
-    public static class AlertAggregator extends ProcessWindowFunction<DeviceAlert, DeviceAlert, TimeWindow> {
+    public static class AlertAggregator extends ProcessAllWindowFunction<DeviceAlert, DeviceAlert, TimeWindow> {
         @Override
-        public void process(TimeWindow window, Context context, Iterable<DeviceAlert> alerts, Collector<DeviceAlert> out) {
+        public void process(Context context, Iterable<DeviceAlert> alerts, Collector<DeviceAlert> out) {
             for (DeviceAlert alert : alerts) {
                 out.collect(alert);
             }

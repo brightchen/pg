@@ -85,6 +85,31 @@ make package            # Package applications as JAR files
 make clean              # Clean build artifacts
 ```
 
+**Integration Tests Behavior:**
+
+The integration tests use a smart Kafka management approach:
+
+1. **Check if Kafka is running** at `localhost:9094` (configurable)
+2. **Auto-start Kafka** via docker-compose if not running
+3. **Create test topics** if they don't exist: `events-test`, `alerts-test`
+4. **Clean up messages** in test topics before each test
+5. **Keep Kafka running** after tests complete (no teardown)
+
+To use a different Kafka cluster:
+```bash
+# Set environment variable
+export KAFKA_BOOTSTRAP_SERVERS=your-kafka:9092
+make integration-test
+
+# Or pass as argument
+./scripts/integration-test.sh your-kafka:9092
+```
+
+After tests complete, Kafka remains running for faster subsequent test runs. To stop:
+```bash
+docker compose down
+```
+
 ### Local Development
 
 ```bash
@@ -270,6 +295,17 @@ kubectl exec -n device-monitor-dev kafka-0 -- kafka-topics.sh \
 - Check pod status: `kubectl get pods -n device-monitor-dev`
 - View pod logs: `kubectl logs -n device-monitor-dev <pod-name>`
 - Describe pod: `kubectl describe pod -n device-monitor-dev <pod-name>`
+
+### Integration Test Issues
+
+- **Kafka not starting**: Ensure Docker is running and you have docker-compose installed
+- **Connection refused**: Check if port 9094 is available: `lsof -i :9094`
+- **Tests fail**: Verify Kafka is accessible: `docker ps | grep kafka`
+- **Topic issues**: Manually check topics:
+  ```bash
+  docker exec -it kafka kafka-topics.sh --bootstrap-server localhost:9092 --list
+  ```
+- **Clean slate**: Stop and remove Kafka: `docker compose down -v`
 
 ## License
 
