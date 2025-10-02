@@ -1,0 +1,31 @@
+image:
+  tag: "0.34.0-debian"
+
+replicas: 1
+
+kafka:
+  bootstrapServers: "kafka-0.kafka-headless:9092"
+  alertsTopic: "alerts"
+
+timescaledb:
+  host: "timescaledb-dev-timescaledb"
+  port: 5432
+  database: "monitoring"
+  table: "alerts"
+  user: "monitor_user"
+  password: "monitor_dev_password"
+
+batch:
+  maxEvents: 100
+  timeoutSecs: 10
+
+buffer:
+  maxSize: 268435488  # 256MB
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "500m"
+    memory: "1Gi"

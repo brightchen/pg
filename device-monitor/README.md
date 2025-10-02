@@ -4,21 +4,33 @@ An Apache Flink-based system for monitoring IoT device events and generating ale
 
 ## System Overview
 
-This system monitors events from IoT devices sent via Kafka and generates alerts when a device hasn't sent an event for more than 1 minute. Alerts are generated every 30 seconds as a list of inactive devices.
+This system monitors events from IoT devices sent via Kafka and generates alerts when a device hasn't sent an event for more than 1 minute. Alerts are stored in TimescaleDB and visualized in Grafana dashboards.
 
 ### Components
 
+**Core Processing:**
 1. **Monitor Application** (`monitor/`) - Apache Flink job that processes device events
 2. **Event Generator** (`event-generator/`) - Test tool to generate mock device events
 3. **Kafka Cluster** (`infrastructure/kafka/`) - Message broker for events and alerts
 4. **Flink Deployment** (`infrastructure/flink/`) - Kubernetes deployment for Flink
 
+**Monitoring & Visualization:**
+5. **Vector** (`infrastructure/vector/`) - Data pipeline from Kafka to TimescaleDB
+6. **TimescaleDB** (`infrastructure/timescaledb/`) - Time-series database for alerts
+7. **Grafana** (`infrastructure/grafana/`) - Dashboard for alert visualization
+
 ### Event Flow
 
+```
+IoT Devices → Kafka (events) → Flink Monitor → Kafka (alerts) → Vector → TimescaleDB ← Grafana
+```
+
 1. Devices send events to Kafka topic `events` with format: `{"event-id": "e123", "device-id": "d456", "time": 1234567890}`
-2. Flink Monitor application reads events, tracks last event time per device
-3. Alerts generated for devices inactive >1 minute
+2. Flink Monitor reads events, tracks last event time per device
+3. Alerts generated for devices inactive >1 minute every 30 seconds
 4. Alerts written to Kafka topic `alerts` with format: `{"device-id": "d456", "latest-event-time": 1234567890}`
+5. Vector reads alerts from Kafka and writes to TimescaleDB
+6. Grafana displays alerts in real-time dashboards
 
 ## Prerequisites
 
@@ -128,12 +140,42 @@ make deploy-qa          # Deploy to qa environment
 make deploy-prod        # Deploy to prod environment
 ```
 
-#### Deploy Full System (Kafka + Monitor)
+#### Deploy Kafka + Monitor
 
 ```bash
-make deploy-all-dev     # Deploy everything to dev
-make deploy-all-qa      # Deploy everything to qa
-make deploy-all-prod    # Deploy everything to prod
+make deploy-all-dev     # Deploy Kafka + Monitor to dev
+make deploy-all-qa      # Deploy to qa
+make deploy-all-prod    # Deploy to prod
+```
+
+#### Deploy Monitoring Stack (TimescaleDB + Vector + Grafana)
+
+```bash
+make deploy-monitoring-dev    # Deploy monitoring stack to dev
+make deploy-monitoring-qa     # Deploy to qa
+make deploy-monitoring-prod   # Deploy to prod
+```
+
+#### Deploy Complete System (Everything)
+
+```bash
+make deploy-full-dev    # Deploy complete system (Kafka + Monitor + Monitoring) to dev
+make deploy-full-qa     # Deploy to qa
+make deploy-full-prod   # Deploy to prod
+```
+
+#### Stop Services
+
+```bash
+# Stop monitoring stack only
+make stop-monitoring-dev
+make stop-monitoring-qa
+make stop-monitoring-prod
+
+# Stop complete system
+make stop-full-dev
+make stop-full-qa
+make stop-full-prod
 ```
 
 ## Project Structure
@@ -164,14 +206,32 @@ make deploy-all-prod    # Deploy everything to prod
 │   │   ├── values-qa.yaml
 │   │   └── values-prod.yaml
 │   │
-│   └── flink/                        # Flink Helm chart
+│   ├── flink/                        # Flink Helm chart
+│   │   ├── Chart.yaml
+│   │   ├── templates/
+│   │   ├── values-dev.yaml
+│   │   ├── values-qa.yaml
+│   │   └── values-prod.yaml
+│   │
+│   ├── timescaledb/                  # TimescaleDB Helm chart
+│   │   ├── Chart.yaml
+│   │   ├── templates/
+│   │   ├── values-dev.yaml
+│   │   ├── values-qa.yaml
+│   │   └── values-prod.yaml
+│   │
+│   ├── vector/                       # Vector Helm chart
+│   │   ├── Chart.yaml
+│   │   ├── templates/
+│   │   ├── values-dev.yaml
+│   │   ├── values-qa.yaml
+│   │   └── values-prod.yaml
+│   │
+│   └── grafana/                      # Grafana Helm chart
 │       ├── Chart.yaml
+│       ├── dashboards/
+│       │   └── device-alerts.json
 │       ├── templates/
-│       │   ├── configmap.yaml
-│       │   ├── jobmanager-deployment.yaml
-│       │   ├── jobmanager-service.yaml
-│       │   ├── taskmanager-deployment.yaml
-│       │   └── serviceaccount.yaml
 │       ├── values-dev.yaml
 │       ├── values-qa.yaml
 │       └── values-prod.yaml
@@ -182,7 +242,11 @@ make deploy-all-prod    # Deploy everything to prod
 │   ├── integration-test.sh           # Run integration tests
 │   ├── package.sh                    # Package JARs
 │   ├── deploy-monitor.sh             # Deploy monitor to K8s
-│   ├── deploy-all.sh                 # Deploy full system to K8s
+│   ├── deploy-all.sh                 # Deploy Kafka + Monitor to K8s
+│   ├── deploy-monitoring.sh          # Deploy monitoring stack to K8s
+│   ├── deploy-full-stack.sh          # Deploy complete system to K8s
+│   ├── stop-monitoring.sh            # Stop monitoring stack
+│   ├── stop-full-stack.sh            # Stop complete system
 │   └── run-event-generator.sh        # Run event generator
 │
 ├── docker-compose.yaml               # Local development environment
@@ -208,14 +272,26 @@ make deploy-all-prod    # Deploy everything to prod
 ### Resource Requirements
 
 #### Development
+**Core Processing:**
 - Kafka: 1 replica, 1-2Gi memory
 - Flink JobManager: 2Gi memory
 - Flink TaskManager: 2 replicas, 2Gi each
 
+**Monitoring Stack:**
+- TimescaleDB: 1-2Gi memory, 10Gi storage
+- Vector: 512Mi memory
+- Grafana: 512Mi-1Gi memory, 5Gi storage
+
 #### Production
+**Core Processing:**
 - Kafka: 3 replicas, 4-8Gi memory each
 - Flink JobManager: 4Gi memory
 - Flink TaskManager: 3 replicas, 4Gi each
+
+**Monitoring Stack:**
+- TimescaleDB: 4-8Gi memory, 200Gi storage
+- Vector: 3 replicas, 2Gi memory each
+- Grafana: 2-4Gi memory, 50Gi storage
 
 ## Configuration
 
@@ -240,6 +316,48 @@ The Monitor application accepts these command-line arguments:
 
 ## Monitoring & Operations
 
+### Access Grafana Dashboard
+
+Grafana provides real-time visualization of device alerts with pre-configured dashboards.
+
+```bash
+# Port-forward to Grafana
+kubectl port-forward -n device-monitor-dev svc/grafana-dev 3000:80
+
+# Open browser
+http://localhost:3000
+
+# Login credentials (dev environment)
+Username: admin
+Password: admin_dev_password  # (see infrastructure/grafana/values-dev.yaml)
+```
+
+**Available Dashboards:**
+- **IoT Device Alerts** - Main dashboard showing:
+  - Total alerts count
+  - Unique devices with alerts
+  - Alerts over time (time series)
+  - Top 10 devices by alert count
+  - Recent alerts table
+  - Alert heatmap by hour
+
+### Access TimescaleDB
+
+Query the alerts database directly:
+
+```bash
+# Port-forward to TimescaleDB
+kubectl port-forward -n device-monitor-dev svc/timescaledb-dev-timescaledb 5432:5432
+
+# Connect with psql
+psql -h localhost -U monitor_user -d monitoring
+
+# Example queries
+SELECT * FROM alerts ORDER BY time DESC LIMIT 10;
+SELECT device_id, COUNT(*) FROM alerts GROUP BY device_id ORDER BY count DESC;
+SELECT time_bucket('5 minutes', time) AS bucket, COUNT(*) FROM alerts GROUP BY bucket ORDER BY bucket DESC;
+```
+
 ### Access Flink UI
 
 ```bash
@@ -262,6 +380,15 @@ kubectl logs -n device-monitor-dev -l app=flink,component=jobmanager
 
 # Flink TaskManager logs
 kubectl logs -n device-monitor-dev -l app=flink,component=taskmanager
+
+# Vector logs (data pipeline)
+kubectl logs -n device-monitor-dev -l app=vector
+
+# TimescaleDB logs
+kubectl logs -n device-monitor-dev -l app=timescaledb
+
+# Grafana logs
+kubectl logs -n device-monitor-dev -l app.kubernetes.io/name=grafana
 ```
 
 ### Check Kafka Topics

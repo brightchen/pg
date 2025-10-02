@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vector
+description: Vector for streaming alerts from Kafka to TimescaleDB
+type: application
+version: 1.0.0
+appVersion: "0.34.0"

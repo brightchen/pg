@@ -1,0 +1,71 @@
+grafana:
+  # Admin credentials
+  adminUser: admin
+  adminPassword: CHANGE_ME_IN_PRODUCTION
+
+  # Service configuration
+  service:
+    type: LoadBalancer
+    port: 80
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+  # Persistence
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: fast-ssd
+
+  # Datasources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: TimescaleDB
+          type: postgres
+          url: timescaledb-prod-timescaledb:5432
+          database: monitoring
+          user: monitor_user
+          secureJsonData:
+            password: CHANGE_ME_IN_PRODUCTION
+          jsonData:
+            sslmode: require
+            postgresVersion: 1500
+            timescaledb: true
+          isDefault: true
+          editable: false
+
+  # Dashboard providers
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: true
+          editable: false
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+  # Dashboards
+  dashboardsConfigMaps:
+    default: "grafana-prod-dashboards"
+
+  # Grafana config
+  grafana.ini:
+    server:
+      root_url: "https://grafana-prod.example.com"
+    security:
+      admin_user: admin
+      admin_password: CHANGE_ME_IN_PRODUCTION
+    auth:
+      disable_login_form: false

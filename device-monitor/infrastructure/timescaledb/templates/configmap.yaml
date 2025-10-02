@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-timescaledb-init
+  labels:
+    app: timescaledb
+data:
+  init.sql: |
+    -- Create database if not exists
+    SELECT 'CREATE DATABASE {{ .Values.database.name }}'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{ .Values.database.name }}')
+    \gexec
+
+    \c {{ .Values.database.name }}
+
+    -- Enable TimescaleDB extension
+    CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+
+    -- Create alerts table
+    CREATE TABLE IF NOT EXISTS alerts (
+      time TIMESTAMPTZ NOT NULL,
+      device_id TEXT NOT NULL,
+      latest_event_time TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Create hypertable for time-series data
+    SELECT create_hypertable('alerts', 'time', if_not_exists => TRUE);
+
+    -- Create indexes
+    CREATE INDEX IF NOT EXISTS idx_alerts_device_id ON alerts (device_id, time DESC);
+    CREATE INDEX IF NOT EXISTS idx_alerts_time ON alerts (time DESC);
+
+    -- Create retention policy (optional - keep data for 30 days)
+    SELECT add_retention_policy('alerts', INTERVAL '30 days', if_not_exists => TRUE);
+
+    -- Grant permissions to application user
+    GRANT ALL PRIVILEGES ON TABLE alerts TO {{ .Values.database.user }};

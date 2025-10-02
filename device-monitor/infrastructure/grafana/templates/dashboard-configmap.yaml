@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-dashboards
+  labels:
+    app: grafana
+    grafana_dashboard: "1"
+data:
+  device-alerts.json: |
+{{ .Files.Get "dashboards/device-alerts.json" | indent 4 }}

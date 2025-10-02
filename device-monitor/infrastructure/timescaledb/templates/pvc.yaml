@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-timescaledb-pvc
+  labels:
+    app: timescaledb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+  {{- if .Values.storage.storageClass }}
+  storageClassName: {{ .Values.storage.storageClass }}
+  {{- end }}

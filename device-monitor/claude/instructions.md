@@ -8,4 +8,9 @@ code compilable
   test topic if it already have messages. No need to delete test topic and shutdown kafka cluster after integration
   test done
 - There are some error when run integration test, could you please fix it
+- Now the alerts are generated and send to kafka topic. Next step I want to display these alerts. I want to use
+  datadog's vector to read alerts from kafka topic, then convert and and write to the alerts table of TimescaleDB,
+  the use Grafana to display the alerts. Could you please config and deploy the datadog vector, TimescaleDB and
+  Grafana? And all these components are managed by k8s. Also provide entry point run and stop command to start all
+  these components. And also please update the readme.md
 

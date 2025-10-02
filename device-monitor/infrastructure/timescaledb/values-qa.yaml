@@ -1,0 +1,19 @@
+image:
+  tag: "2.13.0-pg15"
+
+database:
+  name: "monitoring"
+  user: "monitor_user"
+  password: "monitor_qa_password"
+
+storage:
+  size: "50Gi"
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: "1000m"
+    memory: "2Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"

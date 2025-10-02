@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-vector
+  labels:
+    app: vector
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: vector
+  template:
+    metadata:
+      labels:
+        app: vector
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+      - name: vector
+        image: timberio/vector:{{ .Values.image.tag }}
+        args:
+          - --config
+          - /etc/vector/vector.toml
+        ports:
+        - containerPort: 8686
+          name: api
+        env:
+        - name: TIMESCALEDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-vector-secret
+              key: timescaledb-password
+        volumeMounts:
+        - name: config
+          mountPath: /etc/vector
+        - name: data
+          mountPath: /var/lib/vector
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8686
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8686
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: {{ .Release.Name }}-vector-config
+      - name: data
+        emptyDir: {}

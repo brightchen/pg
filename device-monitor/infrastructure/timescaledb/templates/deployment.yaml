@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-timescaledb
+  labels:
+    app: timescaledb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+    spec:
+      containers:
+      - name: timescaledb
+        image: timescale/timescaledb:{{ .Values.image.tag }}
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: {{ .Values.database.name }}
+        - name: POSTGRES_USER
+          value: {{ .Values.database.user }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-timescaledb-secret
+              key: password
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - {{ .Values.database.user }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - {{ .Values.database.user }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-timescaledb-pvc
+      - name: init-scripts
+        configMap:
+          name: {{ .Release.Name }}-timescaledb-init

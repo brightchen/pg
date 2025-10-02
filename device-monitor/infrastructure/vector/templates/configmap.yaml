@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-vector-config
+  labels:
+    app: vector
+data:
+  vector.toml: |
+    [sources.kafka_alerts]
+    type = "kafka"
+    bootstrap_servers = "{{ .Values.kafka.bootstrapServers }}"
+    topics = ["{{ .Values.kafka.alertsTopic }}"]
+    group_id = "vector-consumer-group"
+    auto_offset_reset = "earliest"
+    decoding.codec = "json"
+
+    [transforms.parse_alert]
+    type = "remap"
+    inputs = ["kafka_alerts"]
+    source = '''
+      # Parse the alert JSON
+      . = parse_json!(.message)
+
+      # Convert epoch milliseconds to timestamp
+      .time = to_timestamp!(int!(.["latest-event-time"]) / 1000)
+      .latest_event_time = to_timestamp!(int!(.["latest-event-time"]) / 1000)
+      .device_id = string!(.["device-id"])
+
+      # Add created_at timestamp
+      .created_at = now()
+
+      # Remove original fields we don't need
+      del(.message)
+      del(.["device-id"])
+      del(.["latest-event-time"])
+    '''
+
+    [sinks.timescaledb]
+    type = "postgresql"
+    inputs = ["parse_alert"]
+    host = "{{ .Values.timescaledb.host }}"
+    port = {{ .Values.timescaledb.port }}
+    database = "{{ .Values.timescaledb.database }}"
+    table = "{{ .Values.timescaledb.table }}"
+    user = "{{ .Values.timescaledb.user }}"
+    password = "${TIMESCALEDB_PASSWORD}"
+
+    # Batch settings for performance
+    batch.max_events = {{ .Values.batch.maxEvents }}
+    batch.timeout_secs = {{ .Values.batch.timeoutSecs }}
+
+    # Buffer settings
+    buffer.type = "disk"
+    buffer.max_size = {{ .Values.buffer.maxSize }}
+
+    # Health check endpoint
+    [api]
+    enabled = true
+    address = "0.0.0.0:8686"

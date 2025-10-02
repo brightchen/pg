@@ -1,0 +1,68 @@
+grafana:
+  # Admin credentials
+  adminUser: admin
+  adminPassword: admin_dev_password
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  # Persistence
+  persistence:
+    enabled: true
+    size: 5Gi
+
+  # Datasources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: TimescaleDB
+          type: postgres
+          url: timescaledb-dev-timescaledb:5432
+          database: monitoring
+          user: monitor_user
+          secureJsonData:
+            password: monitor_dev_password
+          jsonData:
+            sslmode: disable
+            postgresVersion: 1500
+            timescaledb: true
+          isDefault: true
+          editable: true
+
+  # Dashboard providers
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+  # Dashboards
+  dashboardsConfigMaps:
+    default: "grafana-dev-dashboards"
+
+  # Enable anonymous access (dev only)
+  grafana.ini:
+    auth.anonymous:
+      enabled: true
+      org_role: Viewer
+    server:
+      root_url: "http://localhost:3000"

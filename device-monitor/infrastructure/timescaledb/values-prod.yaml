@@ -1,0 +1,19 @@
+image:
+  tag: "2.13.0-pg15"
+
+database:
+  name: "monitoring"
+  user: "monitor_user"
+  password: "CHANGE_ME_IN_PRODUCTION"
+
+storage:
+  size: "200Gi"
+  storageClass: "fast-ssd"
+
+resources:
+  requests:
+    cpu: "2000m"
+    memory: "4Gi"
+  limits:
+    cpu: "4000m"
+    memory: "8Gi"
