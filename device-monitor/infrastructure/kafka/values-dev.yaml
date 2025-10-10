@@ -19,6 +19,24 @@ kafka:
       cpu: 500m
       memory: 1Gi
 
+  # Readiness probe - less strict for dev
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  # Liveness probe - less strict for dev
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
   # Listeners
   listeners:
     client:

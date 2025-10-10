@@ -1,0 +1,6 @@
+dependencies:
+- name: flink
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.0.7
+digest: sha256:6f829fd044c54e6b03c0d9f2f3c7d88ea7533bca055c7215b7e85aca41d4d20d
+generated: "2025-10-03T21:57:45.23201642-07:00"

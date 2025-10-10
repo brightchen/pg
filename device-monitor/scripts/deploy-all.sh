@@ -34,11 +34,19 @@ cd "$PROJECT_ROOT/infrastructure/kafka"
 helm repo add bitnami https://charts.bitnami.com/bitnami 2>/dev/null || true
 helm repo update
 
+# Build dependencies if needed
+if [ ! -d "charts" ]; then
+    echo "Building Helm dependencies..."
+    helm dependency build
+fi
+
+echo "Installing Kafka (this may take several minutes)..."
 helm upgrade --install kafka-$ENV . \
     --namespace "$NAMESPACE" \
     --values "values-$ENV.yaml" \
     --wait \
-    --timeout 10m
+    --timeout 15m \
+    --create-namespace
 
 echo "Kafka deployed successfully!"
 
